@@ -165,30 +165,6 @@ pip install numpy scipy pandas scikit-learn matplotlib
 
 ---
 
-# Running Simulation Experiments
-
-Run:
-
-```bash
-python run_simulation_experiments.py
-```
-
-This script reproduces the simulation studies and sensitivity analyses reported in the paper.
-
----
-
-# Running Real Data Experiments
-
-Run:
-
-```bash
-python run_real_data_experiments.py
-```
-
-This script reproduces the semi-synthetic real data experiments.
-
----
-
 # Methods Included
 
 The following methods are implemented:
@@ -213,21 +189,7 @@ Performance is evaluated using:
 
 ---
 
-# Reproducibility
 
-All experiments are conducted with fixed random seeds for reproducibility.
-
----
-
-# Citation
-
-If you use this code, please cite:
-
-```text
-Robust High-Dimensional Regression under Missingness and Contamination via Nonconvex Penalization
-```
-
----
 
 # License
 
