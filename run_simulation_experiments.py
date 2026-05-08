@@ -178,7 +178,7 @@ def save_refined_plots(contam_df, missing_df):
     })
 
     
-    # Plot 1a: F1 vs Contamination:
+    # F1 vs Contamination:
     
     plt.figure(figsize=(7, 5))
 
