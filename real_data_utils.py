@@ -1,15 +1,9 @@
 import numpy as np
-
 import pandas as pd
-
 import warnings
-
 from sklearn.datasets import load_diabetes, load_wine, fetch_openml
-
 from sklearn.preprocessing import StandardScaler
-
 from sklearn.exceptions import ConvergenceWarning
-
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 
