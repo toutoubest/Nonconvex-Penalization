@@ -163,31 +163,7 @@ Install required packages:
 pip install numpy scipy pandas scikit-learn matplotlib
 ```
 
----
 
-# Methods Included
-
-The following methods are implemented:
-
-- Naive-Lasso
-- LPD-Lasso
-- RLPD-Lasso
-- RLPD-SCAD
-- RLPD-MCP
-
----
-
-# Evaluation Metrics
-
-Performance is evaluated using:
-
-- Mean Squared Error (MSE)
-- Area Under the ROC Curve (AUC)
-- F1 Score
-- True Positives (TP)
-- False Positives (FP)
-
----
 
 
 
