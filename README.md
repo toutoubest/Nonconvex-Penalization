@@ -191,6 +191,4 @@ Performance is evaluated using:
 
 
 
-# License
 
-This project is released for academic research purposes.
