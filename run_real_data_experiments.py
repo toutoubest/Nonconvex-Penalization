@@ -9,7 +9,12 @@ from tuning import tune_lambda_ebic
 from evaluation import post_threshold, evaluate, fit_naive_lasso, fit_mice_lasso, fit_adaptive_huber_lasso
 
 
-# Run one semi-synthetic real-data experiment.
+# Run one semi-synthetic real-data experiment on a real design matrix X.
+#
+# Uses all 7 methods compared throughout the paper (Naive-Lasso, MICE-Lasso,
+# Adaptive-Huber-Lasso, LPD-Lasso, RLPD-Lasso, RLPD-SCAD, RLPD-MCP) and
+# lpd_shrinkage_v2 (alpha_mode="boundary"), the same shrinkage rule used
+# everywhere else in the paper.
 
 def run_one_real_dataset(
     X,
@@ -152,22 +157,26 @@ def run_real_dataset_repeated(
     return pd.DataFrame(rows)
 
 
-# Run all real datasets
+# Run all real datasets.
+#
+# R=10 and s=15 match Table "tab:real" in the paper. p_screen is forwarded to
+# real_data_utils.load_real_datasets(); pass a smaller value for a much
+# faster (but not paper-matching) smoke test.
 
 def run_all_real_datasets(
-    R=20,
+    R=10,
     missing_rate=0.2,
     contam_rate=0.05,
     contam_scale=8.0,
-    s=10,
-    liver_path="bupa.data"
+    s=15,
+    p_screen=300
 ):
-    datasets = load_real_datasets(liver_path=liver_path)
+    datasets = load_real_datasets(p_screen=p_screen)
 
     all_tables = []
 
     for name, X in datasets.items():
-        print(f"\n{name} raw shape: {X.shape}")  # sanity check, e.g. Liver should print (345, 5)
+        print(f"\n{name} raw shape: {X.shape}")  # sanity check, e.g. Colon should print (62, 300)
         print(f"Running real-data experiment: {name}")
 
         df = run_real_dataset_repeated(
@@ -188,22 +197,10 @@ def run_all_real_datasets(
 
 
 if __name__ == "__main__":
-    # s is set per dataset to match the sparsity levels used in the revised
-    # paper's real-data table (Diabetes s=3, Wine s=4, Liver s=1); run each
-    # dataset separately here instead of passing one shared s to
-    # run_all_real_datasets(), since the datasets have very different p.
-    dataset_s = {"Diabetes": 3, "Wine": 4, "Liver": 1}
-
-    datasets = load_real_datasets(liver_path="bupa.data")
-    all_tables = []
-    for name, X in datasets.items():
-        print(f"\n{name} raw shape: {X.shape}")
-        s = dataset_s.get(name, 10)
-        df = run_real_dataset_repeated(X, dataset_name=name, R=20, s=s,
-                                        missing_rate=0.2, contam_rate=0.05, contam_scale=8.0)
-        all_tables.append(df)
-
-    real_results = pd.concat(all_tables, ignore_index=True)
+    # Reproduces Table "tab:real" in the paper: Colon Cancer, Leukemia, and
+    # Riboflavin, each variance-screened to p=300, with R=10 replications
+    # and s=15.
+    real_results = run_all_real_datasets()
     print("\nSemi-synthetic real data results:")
     print(real_results.round(4))
-    real_results.to_csv("real_data_results.csv", index=False)
+    real_results.to_csv("real_highdim_results.csv", index=False)
