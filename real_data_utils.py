@@ -53,7 +53,7 @@ def preprocess_X(X):
 
 def generate_semisynthetic_from_real_X(
     X,
-    s=10,
+    s=15,
     sigma=1.0,
     beta_low=1.0,
     beta_high=2.0,
