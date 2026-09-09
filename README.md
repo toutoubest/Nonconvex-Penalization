@@ -1,4 +1,4 @@
-# Robust High-Dimensional Regression under Missingness and Contamination via Nonconvex Penalization
+# Robust Covariance-Regularized High-Dimensional Regression under Missingness and Contamination
 
 The proposed framework combines:
 
