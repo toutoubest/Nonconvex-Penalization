@@ -1,39 +1,34 @@
-import os
 import numpy as np
-import pandas as pd
-import warnings
-from sklearn.datasets import load_diabetes, load_wine
 from sklearn.preprocessing import StandardScaler
 from sklearn.exceptions import ConvergenceWarning
+import warnings
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
+
+from highdim_gene_data import load_colon_cancer, load_leukemia_combined, load_riboflavin
+from libsvm_utils import variance_screen
 
 
 # 1. Load real datasets
+#
+# The three genuinely high-dimensional gene-expression datasets used in the
+# paper's real-data analysis (Section 5): Colon Cancer (n=62, p=2000),
+# Leukemia (n=72, p=7129, combining the standard train/test splits), and
+# Riboflavin production (n=71, p=4088). Each is variance-screened down to the
+# top p_screen=300 predictors, since the full gene set is computationally
+# impractical for the EBIC-tuned coordinate descent pipeline used throughout
+# this paper.
 
-
-def load_liver_from_file(path="bupa.data"):
-    if not os.path.exists(path):
-        raise FileNotFoundError(
-            f"Could not find '{path}'. Download the UCI Liver Disorders "
-            f"data file (bupa.data) and place it next to this script, or "
-            f"pass the correct path to load_liver_from_file()."
-        )
-    data = np.loadtxt(path, delimiter=",")
-    X = data[:, :5]  # mcv, alkphos, sgpt, sgot, gammagt (drop drinks, selector)
-    return X
-
-
-def load_real_datasets(liver_path="bupa.data"):
+def load_real_datasets(p_screen=300):
     datasets = {}
 
-    # Diabetes (bundled with scikit-learn, no network needed)
-    datasets["Diabetes"] = load_diabetes().data
+    Xc = load_colon_cancer()
+    datasets["Colon"], _ = variance_screen(Xc, p_screen)
 
-    # Wine (bundled with scikit-learn, no network needed)
-    datasets["Wine"] = load_wine().data
+    Xl = load_leukemia_combined()
+    datasets["Leukemia"], _ = variance_screen(Xl, p_screen)
 
-    # Liver Disorders (loaded from a local file, see load_liver_from_file above)
-    datasets["Liver"] = load_liver_from_file(liver_path)
+    Xr, _ = load_riboflavin()
+    datasets["Riboflavin"], _ = variance_screen(Xr, p_screen)
 
     return datasets
 
