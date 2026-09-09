@@ -19,7 +19,7 @@ from evaluation import post_threshold, evaluate, fit_naive_lasso, fit_mice_lasso
 def run_one_real_dataset(
     X,
     seed=1,
-    s=10,
+    s=15,
     missing_rate=0.2,
     contam_rate=0.05,
     contam_scale=8.0,
@@ -101,7 +101,7 @@ def run_real_dataset_repeated(
     X,
     dataset_name,
     R=20,
-    s=10,
+    s=15,
     missing_rate=0.2,
     contam_rate=0.05,
     contam_scale=8.0,
