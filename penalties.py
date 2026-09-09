@@ -1,4 +1,6 @@
-#Threshold operators
+import numpy as np
+
+# Threshold operators
 
 def soft_threshold(z, lam):
     return np.sign(z) * max(abs(z) - lam, 0.0)
