@@ -1,4 +1,15 @@
- #Run one semi-synthetic real-data experiment:
+import numpy as np
+import pandas as pd
+
+from real_data_utils import load_real_datasets, preprocess_X, generate_semisynthetic_from_real_X
+from missing_contamination import add_missing_contamination
+from covariance_estimators import ipw_covariance, robust_ipw_covariance
+from shrinkage import lpd_shrinkage_v2
+from tuning import tune_lambda_ebic
+from evaluation import post_threshold, evaluate, fit_naive_lasso, fit_mice_lasso, fit_adaptive_huber_lasso
+
+
+# Run one semi-synthetic real-data experiment.
 
 def run_one_real_dataset(
     X,
@@ -11,7 +22,8 @@ def run_one_real_dataset(
     beta_high=2.0,
     sigma=1.0,
     gamma_ebic=0.0,
-    threshold=1e-3
+    threshold=1e-3,
+    huber_lam=0.05
 ):
     X = preprocess_X(X)
     n, p = X.shape
@@ -34,63 +46,48 @@ def run_one_real_dataset(
         seed=seed
     )
 
+    methods = {}
+
     # Naive-Lasso
-    beta_naive = fit_naive_lasso(X_obs, y_obs, mask)
+    methods["Naive-Lasso"] = fit_naive_lasso(X_obs, y_obs, mask)
+
+    # MICE-Lasso
+    methods["MICE-Lasso"] = fit_mice_lasso(X_obs, y_obs, mask)
+
+    # Adaptive-Huber-Lasso
+    methods["Adaptive-Huber-Lasso"] = fit_adaptive_huber_lasso(X_obs, mask, y_obs, lam=huber_lam)
 
     # LPD-Lasso
     Sigma_ipw, rho_ipw = ipw_covariance(X_obs, y_obs, mask)
-    Sigma_lpd = lpd_shrinkage(Sigma_ipw)
-
+    Sigma_lpd, _, _, _ = lpd_shrinkage_v2(Sigma_ipw, alpha_mode="boundary")
     beta_lpd_lasso, _ = tune_lambda_ebic(
-        Sigma_lpd,
-        rho_ipw,
-        n=n,
-        penalty="lasso",
-        gamma_ebic=gamma_ebic
+        Sigma_lpd, rho_ipw, n=n, penalty="lasso", gamma_ebic=gamma_ebic
     )
+    methods["LPD-Lasso"] = beta_lpd_lasso
 
     # Robust LPD methods
     Sigma_ripw, rho_ripw = robust_ipw_covariance(X_obs, y_obs, mask)
-    Sigma_rlpd = lpd_shrinkage(Sigma_ripw)
+    Sigma_rlpd, _, _, _ = lpd_shrinkage_v2(Sigma_ripw, alpha_mode="boundary")
 
     beta_rlpd_lasso, _ = tune_lambda_ebic(
-        Sigma_rlpd,
-        rho_ripw,
-        n=n,
-        penalty="lasso",
-        gamma_ebic=gamma_ebic
+        Sigma_rlpd, rho_ripw, n=n, penalty="lasso", gamma_ebic=gamma_ebic
     )
-
     beta_rlpd_scad, _ = tune_lambda_ebic(
-        Sigma_rlpd,
-        rho_ripw,
-        n=n,
-        penalty="scad",
-        gamma_ebic=gamma_ebic
+        Sigma_rlpd, rho_ripw, n=n, penalty="scad", gamma_ebic=gamma_ebic
     )
-
     beta_rlpd_mcp, _ = tune_lambda_ebic(
-        Sigma_rlpd,
-        rho_ripw,
-        n=n,
-        penalty="mcp",
-        gamma_ebic=gamma_ebic
+        Sigma_rlpd, rho_ripw, n=n, penalty="mcp", gamma_ebic=gamma_ebic
     )
-
-    methods = {
-        "Naive-Lasso": beta_naive,
-        "LPD-Lasso": beta_lpd_lasso,
-        "RLPD-Lasso": beta_rlpd_lasso,
-        "RLPD-SCAD": beta_rlpd_scad,
-        "RLPD-MCP": beta_rlpd_mcp
-    }
+    methods["RLPD-Lasso"] = beta_rlpd_lasso
+    methods["RLPD-SCAD"] = beta_rlpd_scad
+    methods["RLPD-MCP"] = beta_rlpd_mcp
 
     results = {}
     for name, beta_hat in methods.items():
         beta_hat = post_threshold(beta_hat, threshold=threshold)
         results[name] = evaluate(beta_hat, beta_true, threshold=threshold)
 
-    return results, n, p, np.sum(beta_true != 0)
+    return results, n, p, int(np.sum(beta_true != 0))
 
 
 # Repeated real-data experiment for one dataset:
@@ -121,16 +118,21 @@ def run_real_dataset_repeated(
             beta_high=beta_high
         )
 
-        for method, values in res.items():
+        for method, metrics in res.items():
             if method not in all_results:
                 all_results[method] = []
-            all_results[method].append(values)
+            all_results[method].append(metrics)
 
     rows = []
 
-    for method, values in all_results.items():
-        arr = np.array(values)
-        mean_vals = arr.mean(axis=0)
+    for method, metrics_list in all_results.items():
+        mse_mean = np.mean([m["mse"] for m in metrics_list])
+        auc_mean = np.mean([m["auc"] for m in metrics_list])
+        f1_mean = np.mean([m["f1"] for m in metrics_list])
+        fdr_mean = np.mean([m["fdr"] for m in metrics_list])
+        tp_mean = np.mean([m["tp"] for m in metrics_list])
+        fp_mean = np.mean([m["fp"] for m in metrics_list])
+        support_mean = np.mean([m["support_size"] for m in metrics_list])
 
         rows.append({
             "Dataset": dataset_name,
@@ -138,32 +140,35 @@ def run_real_dataset_repeated(
             "p": p_final,
             "s": s_final,
             "Method": method,
-            "MSE": mean_vals[0],
-            "AUC": mean_vals[1],
-            "F1": mean_vals[2],
-            "TP": mean_vals[3],
-            "FP": mean_vals[4]
+            "MSE": mse_mean,
+            "AUC": auc_mean,
+            "F1": f1_mean,
+            "FDR": fdr_mean,
+            "TP": tp_mean,
+            "FP": fp_mean,
+            "SupportSize": support_mean
         })
 
     return pd.DataFrame(rows)
 
 
-
-# Run all  real datasets
+# Run all real datasets
 
 def run_all_real_datasets(
     R=20,
     missing_rate=0.2,
     contam_rate=0.05,
     contam_scale=8.0,
-    s=10
+    s=10,
+    liver_path="bupa.data"
 ):
-    datasets = load_real_datasets()
+    datasets = load_real_datasets(liver_path=liver_path)
 
     all_tables = []
 
     for name, X in datasets.items():
-        print(f"\nRunning real-data experiment: {name}")
+        print(f"\n{name} raw shape: {X.shape}")  # sanity check, e.g. Liver should print (345, 5)
+        print(f"Running real-data experiment: {name}")
 
         df = run_real_dataset_repeated(
             X,
@@ -182,17 +187,23 @@ def run_all_real_datasets(
     return final_df
 
 
+if __name__ == "__main__":
+    # s is set per dataset to match the sparsity levels used in the revised
+    # paper's real-data table (Diabetes s=3, Wine s=4, Liver s=1); run each
+    # dataset separately here instead of passing one shared s to
+    # run_all_real_datasets(), since the datasets have very different p.
+    dataset_s = {"Diabetes": 3, "Wine": 4, "Liver": 1}
 
-# Run real data experiments
+    datasets = load_real_datasets(liver_path="bupa.data")
+    all_tables = []
+    for name, X in datasets.items():
+        print(f"\n{name} raw shape: {X.shape}")
+        s = dataset_s.get(name, 10)
+        df = run_real_dataset_repeated(X, dataset_name=name, R=20, s=s,
+                                        missing_rate=0.2, contam_rate=0.05, contam_scale=8.0)
+        all_tables.append(df)
 
-real_results = run_all_real_datasets(
-    R=20,
-    missing_rate=0.2,
-    contam_rate=0.05,
-    contam_scale=8.0,
-    s=10
-)
-
-print("\nSemi-synthetic real data results:")
-print(real_results.round(4))
-
+    real_results = pd.concat(all_tables, ignore_index=True)
+    print("\nSemi-synthetic real data results:")
+    print(real_results.round(4))
+    real_results.to_csv("real_data_results.csv", index=False)
