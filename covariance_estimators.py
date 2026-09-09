@@ -1,4 +1,6 @@
-#Robust IPW covariance and cross moment
+import numpy as np
+
+# Robust IPW covariance and cross moment
 def robust_ipw_covariance(X_obs, y_obs, mask, c_factor=1.345):
     n, p = X_obs.shape
 
@@ -26,7 +28,7 @@ def robust_ipw_covariance(X_obs, y_obs, mask, c_factor=1.345):
 
     return Sigma_ripw, rho_ripw
 
- #Standard IPW covariance and cross moment:
+# Standard IPW covariance and cross moment:
 
 def ipw_covariance(X_obs, y_obs, mask):
     n, p = X_obs.shape
