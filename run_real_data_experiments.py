@@ -100,7 +100,7 @@ def run_one_real_dataset(
 def run_real_dataset_repeated(
     X,
     dataset_name,
-    R=20,
+    R=10,
     s=15,
     missing_rate=0.2,
     contam_rate=0.05,
