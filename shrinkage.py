@@ -2,41 +2,7 @@ import numpy as np
 from numpy.linalg import eigvalsh
 
 
-# ==============================================================================
 # Linear shrinkage positive-definite modification
-# ==============================================================================
-#
-# Updated: this file now supports two shrinkage-intensity rules instead of
-# just one:
-#
-#   - "boundary" (the original method): the smallest alpha for which
-#     Sigma_LPD(alpha) = alpha*Sigma_hat + (1-alpha)*mu*I is positive
-#     definite. This is Proposition 1 in the revised paper -- it answers
-#     *feasibility*, not optimality.
-#
-#   - "lw": a Ledoit-Wolf (2004) style plug-in estimate of the alpha that
-#     minimizes the expected Frobenius-norm estimation error of Sigma_LPD.
-#     This is the new Proposition 2 in the revised paper.
-#
-# The revised paper recommends and uses the combined rule
-#     alpha = max(alpha_lw, alpha_boundary)
-# (Remark 3 / Eq. "alpha_combined"), which is guaranteed positive definite
-# and only differs from the boundary rule when the unconstrained MSE-optimal
-# alpha happens to be *larger* than the feasibility boundary. lpd_shrinkage_v2
-# implements this as alpha_mode="combined".
-#
-# eps_mode (new): the original code used a fixed absolute eps (default
-# 1e-4). Once we actually inspected the numbers, we found that when the
-# matrix scale mu = trace(Sigma_hat)/p is much larger than eps -- which is
-# essentially always true in practice (mu is often in the range 15-25 in
-# our simulations) -- alpha_min ends up extremely close to 1 (e.g.
-# 0.999995) regardless of how ill-conditioned the raw matrix is, because the
-# smallest eigenvalue is only pushed up to the (numerically negligible)
-# floor eps. The resulting matrix can still be very poorly conditioned even
-# though it is technically positive definite. eps_mode="relative" fixes
-# this by scaling eps with the matrix itself (eps = eps_ratio * mu), so the
-# shrinkage strength adapts to p and to the data scale rather than being a
-# fixed constant that is completely decoupled from the data.
 
 
 def _alpha_min_boundary(Sigma_hat, eps=1e-4, eps_mode="absolute", eps_ratio=0.02):
@@ -53,18 +19,7 @@ def _alpha_min_boundary(Sigma_hat, eps=1e-4, eps_mode="absolute", eps_ratio=0.02
 
 
 def ledoit_wolf_shrinkage_identity(X_for_lw):
-    """
-    Vectorized implementation of the Ledoit & Wolf (2004) analytic shrinkage
-    intensity for the special case of an identity (mu*I) shrinkage target.
-
-    This applies the classical Ledoit-Wolf result to our IPW-weighted,
-    robustly down-weighted design matrix -- it should be described as a
-    "Ledoit-Wolf-inspired plug-in intensity" rather than a re-derivation of
-    optimality under missingness and contamination.
-
-    Returns delta_hat, the shrinkage-toward-mu*I intensity in [0, 1].
-    The corresponding alpha (weight on the raw estimator) is 1 - delta_hat.
-    """
+    
     n, p = X_for_lw.shape
     S = (X_for_lw.T @ X_for_lw) / n
     S = (S + S.T) / 2
@@ -84,24 +39,7 @@ def ledoit_wolf_shrinkage_identity(X_for_lw):
 
 def lpd_shrinkage_v2(Sigma_hat, X_for_lw=None, eps=1e-4, alpha_mode="boundary",
                       eps_mode="absolute", eps_ratio=0.02):
-    """
-    alpha_mode:
-      - "boundary": original method, smallest alpha on the positive-definite
-        boundary (Proposition 1).
-      - "lw": Ledoit-Wolf-style plug-in alpha (Proposition 2). Falls back to
-        min(alpha_lw, alpha_boundary) to guarantee positive definiteness if
-        alpha_lw alone would violate it.
-      - "combined": alpha = max(alpha_lw, alpha_boundary), the rule
-        recommended in the revised paper (Remark 3). Positive definite by
-        construction and coincides with the MSE-optimal value whenever that
-        value is already feasible.
-
-    eps_mode="relative" uses eps_ratio*mu instead of a fixed eps (see the
-    module docstring above).
-
-    Returns Sigma_lpd, alpha_used, alpha_boundary, alpha_lw (alpha_lw is
-    None when alpha_mode == "boundary").
-    """
+    
     Sigma_hat = (Sigma_hat + Sigma_hat.T) / 2
     p = Sigma_hat.shape[0]
     alpha_boundary, mu = _alpha_min_boundary(Sigma_hat, eps=eps, eps_mode=eps_mode, eps_ratio=eps_ratio)
