@@ -9,17 +9,7 @@ from libsvm_utils import variance_screen
 
 
 # 1. Load real datasets
-#
-# The three genuinely high-dimensional gene-expression datasets used in the
-# paper's real-data analysis (Section 5): Colon Cancer (n=62, p=2000),
-# Leukemia (n=72, p=7129, combining the standard train/test splits), and
-# Riboflavin production (n=71, p=4088). Each is variance-screened down to the
-# top p_screen=300 predictors, since the full gene set is computationally
-# impractical for the EBIC-tuned coordinate descent pipeline used throughout
-# this paper. Screening is applied to the complete, clean design matrix
-# before any missingness or contamination is introduced, and without
-# reference to the response, so it does not leak outcome information into
-# the downstream variable-selection comparison.
+
 
 def load_real_datasets(p_screen=300):
     datasets = {}
