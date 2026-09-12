@@ -12,15 +12,8 @@ from tuning import tune_lambda_ebic
 from evaluation import fit_naive_lasso, fit_mice_lasso, fit_adaptive_huber_lasso, evaluate
 
 
-# ==============================================================================
-# Single replicate, all 7 methods (new)
-# ==============================================================================
-#
-# The original repo never defined run_one_custom, even though
-# run_setting_custom below already called it -- this file could not
-# actually run as shipped. This adds it, matching the 7-method comparison
-# framework used throughout the revised paper (Naive-Lasso, MICE-Lasso,
-# Adaptive-Huber-Lasso, LPD-Lasso, RLPD-Lasso, RLPD-SCAD, RLPD-MCP).
+# Single replicate, all 7 methods
+
 
 def run_one_custom(seed=1, n=200, p=100, s=10,
                     missing_rate=0.2, contam_rate=0.05, contam_scale=8.0,
@@ -57,15 +50,8 @@ def run_one_custom(seed=1, n=200, p=100, s=10,
     return out
 
 
-# ==============================================================================
 # Repeated simulation wrapper
-# ==============================================================================
-#
-# Updated: evaluate() now returns a dict (mse, auc, f1, tp, fp, fdr,
-# support_size) instead of a positional 5-tuple, so this reads named fields
-# instead of indexing mean_vals[0..4]. The output DataFrame now also
-# includes FDR and SupportSize columns, matching every table in the revised
-# paper's Section 4.
+
 
 def run_setting_custom(R=20, **kwargs):
     all_results = {}
@@ -151,12 +137,7 @@ def experiment_2_weak_signal(R=20):
 
 
 # Experiment 3: High-dimensional p > n.
-#
-# Updated settings to match Table tab:highdim in the revised paper: n=200
-# throughout, p in {100, 500, 1000} (p/n up to 5), s=10 at p=100 and s=25 at
-# p=500/1000. tune_lambda_ebic automatically switches to the fast solver
-# (optimization.py's Cholesky + sklearn-Lasso path) once p > 150, which is
-# what makes p=500/1000 practical here.
+
 
 def experiment_3_high_dimensional(R=20):
     settings = [
@@ -184,10 +165,8 @@ def experiment_3_high_dimensional(R=20):
     return pd.concat(all_tables, ignore_index=True)
 
 
-# ==============================================================================
 # Experiment 4a: Contamination type / severity (new; matches Table tab:contam
 # and Figure 1(a)-(b)). Crosses 3 contamination types with 3 severities.
-# ==============================================================================
 
 def experiment_contamination_types(R=20, n=200, p=100, s=10):
     rows = []
@@ -203,10 +182,8 @@ def experiment_contamination_types(R=20, n=200, p=100, s=10):
     return pd.concat(rows, ignore_index=True)
 
 
-# ==============================================================================
 # Experiment 4b: Missingness mechanism, including MNAR (new; matches Table
 # tab:missing and Figure 1(c)-(d)). Crosses MCAR/MNAR with 3 missing rates.
-# ==============================================================================
 
 def experiment_missingness_types(R=20, n=200, p=100, s=10):
     rows = []
@@ -222,12 +199,10 @@ def experiment_missingness_types(R=20, n=200, p=100, s=10):
     return pd.concat(rows, ignore_index=True)
 
 
-# ==============================================================================
 # Experiment 5: choice of shrinkage intensity alpha (new; matches Table
 # tab:alpha and the "Choice of the shrinkage intensity" section). Compares
 # the feasibility-boundary alpha (Proposition 1), the Ledoit-Wolf-style
 # plug-in alpha (Proposition 2), and a cross-validated alpha.
-# ==============================================================================
 
 def select_alpha_cv(X_obs, y_obs, mask, K=5, penalty="mcp", gamma_ebic=0.0,
                      n_grid=10, seed=0):
@@ -302,19 +277,7 @@ def experiment_alpha_comparison(R=10, n=200, p=100, s=10):
     return pd.DataFrame(rows)
 
 
-# ==============================================================================
-# Plot sensitivity curves (Fig1a-Fig1d), matching the exact legend / colors /
-# linestyles already used in the paper's Overleaf project. Colors were
-# extracted directly (pixel color values) from the existing figures:
-#   Naive-Lasso : black,  solid,   circle
-#   LPD-Lasso   : gray,   dashed,  square
-#   RLPD-Lasso  : blue,   dotted,  triangle-up
-#   RLPD-SCAD   : red,    dashdot, star
-#   RLPD-MCP    : green,  dashdot, triangle-down
-# Only these 5 methods are drawn (matching the existing figure legend);
-# MICE-Lasso and Adaptive-Huber-Lasso are reported in the tables but
-# intentionally left out of these figures to keep the legend unchanged.
-# ==============================================================================
+# Plot sensitivity curves 
 
 STYLE = {
     "Naive-Lasso": dict(color="#000000", linestyle="-",  marker="o"),
@@ -399,16 +362,7 @@ def save_sensitivity_plots(contam_df, missing_df):
     print("Saved Fig1a.pdf, Fig1b.pdf, Fig1c.pdf, Fig1d.pdf")
 
 
-# ==============================================================================
 # Run everything.
-#
-# Updated: the original script executed every experiment at module import
-# time, and even called save_refined_plots(contam_sens, missing_sens)
-# *before* contam_sens/missing_sens were defined a few lines later -- that
-# would have raised a NameError if actually run top to bottom. This is now
-# wrapped in `if __name__ == "__main__"` and ordered so every experiment
-# runs before its results are used for plotting.
-# ==============================================================================
 
 if __name__ == "__main__":
     exp1_main = experiment_1_main(R=20)
