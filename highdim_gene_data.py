@@ -4,19 +4,6 @@ import pandas as pd
 from libsvm_utils import load_libsvm
 
 
-# Loaders for the three genuinely high-dimensional gene-expression datasets
-# used in the real-data analysis of the revised paper (Section 5): Colon
-# Cancer, Leukemia, and Riboflavin production. All three are already bundled
-# with this repository (colon-cancer, leu, leu.t, riboflavin.csv) so no
-# network access or manual download is required.
-#
-# Only the real gene-expression design matrix X is used from each source; any
-# class label originally associated with the dataset (tumor/normal for Colon,
-# ALL/AML for Leukemia) is discarded, and the response used in the real-data
-# experiments is instead generated synthetically on top of the real X (see
-# real_data_utils.generate_semisynthetic_from_real_X). This is what makes the
-# comparison a semi-synthetic one: real covariate correlation structure, known
-# ground-truth support for evaluating variable selection.
 
 
 def load_colon_cancer(path="colon-cancer"):
@@ -42,7 +29,7 @@ def load_leukemia_combined(train_path="leu", test_path="leu.t"):
 def load_riboflavin(path="riboflavin.csv"):
     """Load riboflavin.csv (Buhlmann, Kalisch & Meier, 2014; obtained from
     R's hdi package via write.csv(cbind(y, x), ..., row.names=FALSE)). First
-    column is the response y (not used here -- we generate a semi-synthetic
+    column is the response y (not used here ,we generate a semi-synthetic
     response for the support-recovery comparison, same as Colon/Leukemia);
     the remaining 4088 columns are the gene-expression predictors."""
     df = pd.read_csv(path)
