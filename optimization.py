@@ -30,24 +30,7 @@ def fit_quadratic_penalty(
 
     diag_corr = np.maximum(np.diag(Corr), 1e-8)
 
-    # --- Critical fix -----------------------------------------------------
-    # The original code computed `lam_j = lam / diag_corr[j]`. Because Corr
-    # is a correlation matrix, diag_corr[j] is always 1, so this line was a
-    # no-op (lam_j == lam for every coordinate). Substituting
-    # beta = beta_corr / std_devs into the original objective
-    #   0.5*beta^T Sigma beta - rho^T beta + lam*sum_j|beta_j|
-    # shows the penalty term should expand to
-    #   sum_j (lam / std_devs[j]) * |beta_corr_j|,
-    # i.e. each coordinate's effective penalty must be scaled by
-    # 1 / std_devs[j], not left at lam. When every column has variance close
-    # to 1 (e.g. clean, complete data) this bug has almost no effect; but
-    # once missingness/contamination are introduced, the diagonal of the
-    # IPW-corrected covariance deviates noticeably from 1, and the bug
-    # silently solves a "variance-reweighted" penalty problem instead of the
-    # uniform-lambda problem assumed by the EBIC grid search. This was
-    # verified against the KKT stationarity conditions: the fixed line below
-    # reduces the KKT violation from ~0.16 to ~2e-9 on a representative
-    # missing+contaminated setting.
+    
     for _ in range(max_iter):
         beta_old = beta_corr.copy()
         for j in range(p):
@@ -70,20 +53,8 @@ def fit_quadratic_penalty(
 
 
 # ==============================================================================
-# Fast solver (new) -- used for large p (p > 150 by default, see tuning.py).
-#
-# The pure-Python coordinate descent above does not scale to p in the
-# hundreds/thousands (a single fit already takes minutes at p=1000, and the
-# EBIC grid needs dozens of fits per replicate). This maps the same
-# quadratic-loss problem onto an equivalent synthetic-data Lasso problem
-# that sklearn's compiled coordinate descent can solve directly, and handles
-# SCAD/MCP via the local linear approximation (LLA): repeatedly linearize
-# the nonconvex penalty around the current estimate and solve the resulting
-# weighted-L1 problem. This is what makes the p=500/1000 experiments in the
-# revised paper (Section 4.5, Table "High-dimensional performance") feasible
-# on ordinary hardware; see run_simulation_experiments.py's high-dimensional
-# experiment for how it gets used.
-# ==============================================================================
+# Fast solver, used for large p (p > 150 by default, see tuning.py).
+
 def sigma_rho_to_synthetic(Sigma, rho, ridge=1e-10):
     """Builds X_synth, y_synth such that X_synth^T X_synth = Sigma and
     X_synth^T y_synth = rho, via a Cholesky factorization of Sigma."""
