@@ -158,10 +158,6 @@ def run_real_dataset_repeated(
 
 
 # Run all real datasets.
-#
-# R=10 and s=15 match Table "tab:real" in the paper. p_screen is forwarded to
-# real_data_utils.load_real_datasets(); pass a smaller value for a much
-# faster (but not paper-matching) smoke test.
 
 def run_all_real_datasets(
     R=10,
